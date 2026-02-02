@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -e
+
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$BASE_DIR/config/versions.env"
+source "$BASE_DIR/config/paths.env"
+source "$BASE_DIR/config/registry.env"
+
+save_registry() {
+  cat > "$BASE_DIR/config/registry.env" <<EOF
+INSTALLED_ESP_IDF=$INSTALLED_ESP_IDF
+INSTALLED_MONGOOSE=$INSTALLED_MONGOOSE
+INSTALLED_MOSQUITTO=$INSTALLED_MOSQUITTO
+INSTALLED_NODE=$INSTALLED_NODE
+INSTALLED_VSCODE=$INSTALLED_VSCODE
+EOF
+}
+
+run_module() {
+  local action=$1
+  local module=$2
+  bash "$BASE_DIR/$module/${module##*/}.$action.sh"
+}
+
+case "$1" in
+  install)
+    if [ "$2" = "all" ]; then
+      bash core/system.install.sh
+      bash esp/esp_idf.install.sh
+      bash esp/mongoose.install.sh
+      bash mqtt/mosquitto.install.sh
+      bash node/node.install.sh
+      bash gui/vscode.install.sh
+      INSTALLED_ESP_IDF=1
+      INSTALLED_MONGOOSE=1
+      INSTALLED_MOSQUITTO=1
+      INSTALLED_NODE=1
+      INSTALLED_VSCODE=1
+    fi
+    save_registry
+    ;;
+  uninstall)
+    if [ "$2" = "all" ]; then
+      bash gui/vscode.uninstall.sh
+      bash node/node.uninstall.sh
+      bash mqtt/mosquitto.uninstall.sh
+      bash esp/mongoose.uninstall.sh
+      bash esp/esp_idf.uninstall.sh
+      bash core/system.uninstall.sh
+      INSTALLED_ESP_IDF=0
+      INSTALLED_MONGOOSE=0
+      INSTALLED_MOSQUITTO=0
+      INSTALLED_NODE=0
+      INSTALLED_VSCODE=0
+    fi
+    save_registry
+    ;;
+  status)
+    cat "$BASE_DIR/config/registry.env"
+    ;;
+  *)
+    echo "Usage: ./bootstrap {install|uninstall|status} {module|all}"
+    exit 1
+    ;;
+esac
